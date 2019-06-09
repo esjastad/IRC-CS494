@@ -12,11 +12,15 @@ def listen(s):
 	while True:
 		try:
 			idata = s.recv(1024) 		#receive,interpret and print the data from the host
+			if not idata:
+				break
 			print(idata.decode("utf-8"))
 		except socket.error:			#host connection lost
 			print("Host connection lost!")
 			os.kill(os.getpid(), signal.SIGTERM)
 			break
+	print("Host connection lost!")
+	os.kill(os.getpid(), signal.SIGTERM)
 
 #help method called when client types /help and displays information about how to use the IRC
 def help():
@@ -44,17 +48,21 @@ def help():
 if __name__ == "__main__":
 	HOST = '127.0.0.1'  # The server's hostname or IP address
 	PORT = 65432        # The port used by the server
-
+	control = 0
 	sdata = 0			#initialize variable for sending data
 	commands = ['/help','/create','/join','/leave','/roomlist','/userlist','/delete','/whisper','/broadcast','/rooms','/myrooms']	#list of client commands
 
 	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-		try:						
-			s.connect((HOST, PORT))						#try to connect to host
-		except socket.error:							#connection failed
-			print("\nHost could not be reached!")
-			os.kill(os.getpid(), signal.SIGTERM)
-	
+		while (control == 0):
+			try:
+				s.connect((HOST, PORT))						#try to connect to host
+				control = 1
+			except socket.error:							#connection failed
+				print("\nHost could not be reached on the default port!\n")
+				PORT = int(input("Enter a port(-1 to quit):"))
+				if PORT == -1:
+					os.kill(os.getpid(), signal.SIGTERM)
+					
 		x = threading.Thread(target=listen, args=(s,))	#start thread for listening/recieving data
 		x.start()
 	

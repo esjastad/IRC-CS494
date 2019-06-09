@@ -81,23 +81,23 @@ def analyze(data, nuser):
 				nuser.conn.sendall(str.encode("The room you were trying to join was not found!"))
 						
 		elif (temp[0] == "/roomlist"):				#list the servers rooms
-			nuser.conn.sendall(str.encode("IRC Room List:"))
+			nuser.conn.sendall(str.encode("IRC Room List:\n"))
 			for i in rooms:
 				nuser.conn.sendall(str.encode(i+"\n"))
 		
 		elif (temp[0] == "/userlist"):				#list the users on the server
 			name = cull(data,"/userlist ")
 			if (name.isspace() or name == ''):
-				nuser.conn.sendall(str.encode("IRC User List:"))			
+				nuser.conn.sendall(str.encode("IRC User List:\n"))			
 				for i in clients:
 					nuser.conn.sendall(str.encode(i.name+"\n"))
 			elif (name[0] == '/'):
-				nuser.conn.sendall(str.encode("IRC User List:"))			
+				nuser.conn.sendall(str.encode("IRC User List:\n"))			
 				for i in clients:
 					nuser.conn.sendall(str.encode(i.name+"\n"))
 			else:									#list the user in a specified room
 				if name in rooms:
-					nuser.conn.sendall(str.encode(name + " room user list:"))
+					nuser.conn.sendall(str.encode(name + " room user list:\n"))
 					for i in clients:
 						if name in i.room:
 							nuser.conn.sendall(str.encode(i.name + "\n"))
@@ -172,22 +172,22 @@ def analyze(data, nuser):
 			
 				for i in range (size):
 					if chan[0] in rooms:			#if the room to message exists send the message
-						ndata = (" chat) " + nuser.name + ": " + msg)
+						ndata = (" chat) " + nuser.name + ": " + msg + "\n")
 						roomcast(ndata,chan[0],nuser.name)
 					else:							#if the room doesnt exist send a message to sender and continue processing
 						flag = 1
-						nuser.conn.sendall(str.encode(chan[0] + " room was not found!"))
+						nuser.conn.sendall(str.encode(chan[0] + " room was not found!\n"))
 					
 					data = cull(temp[0], (chan[0] + ','))
 					temp = data.split(' ')
 					chan = temp[0].split(',')
 				if flag == 0:						#inform the sender of their success or failure
-					nuser.conn.sendall(str.encode("All rooms received your message!"))
+					nuser.conn.sendall(str.encode("All rooms received your message!\n"))
 				else:
-					nuser.conn.sendall(str.encode("\nAll other rooms received your message!"))
+					nuser.conn.sendall(str.encode("All other rooms received your message!\n"))
 
 		elif (temp[0] == "/myrooms"):				#list the rooms the asking client is currently in
-			nuser.conn.sendall(str.encode("Rooms you are currently in:"))
+			nuser.conn.sendall(str.encode("Rooms you are currently in:\n"))
 			for i in nuser.room:
 				nuser.conn.sendall(str.encode(i + "\n"))
 			
@@ -239,40 +239,53 @@ def rcvsnd(nuser):
 	
 	clients.append(nuser)					#user validated, add to client list
 	
-	data = str.encode("Server Message: " + nuser.name + " has joined the IRC session")	#send messages to other clients about the newly connected client
+	data = str.encode("Server Message: " + nuser.name + " has joined the IRC session\n")	#send messages to other clients about the newly connected client
 	broadcast(data, 'Server')
 	data = " chat) Message: " + nuser.name + " has joined the room"
 	roomcast(data, rooms[0], 'Server')
 	
 	with nuser.conn:
-		while True:							#while connected
-			try:
-				data = nuser.conn.recv(1024)	#receive data
-				val = analyze(data.decode("utf-8"), nuser)	#analyze data
-				if val == 1:					#if analyzer took no action,then send the data to all rooms the sending client is a part of
-					data = " chat) " + nuser.name + ": " + data.decode("utf-8")
+		try:
+			while True:							#while connected
+					data = nuser.conn.recv(1024)	#receive data
 					if not data:
-						break
-					if (len(nuser.room) >= 1):
-						roomcast(data,nuser.room,nuser.name)
+							break
+					val = analyze(data.decode("utf-8"), nuser)	#analyze data
+					if val == 1:					#if analyzer took no action,then send the data to all rooms the sending client is a part of
+						data = " chat) " + nuser.name + ": " + data.decode("utf-8")
+						if (len(nuser.room) >= 1):
+							roomcast(data,nuser.room,nuser.name)
 					
-			except socket.error:			#When a client disconnects let other users know and break the loop
-				for i in clients:
-					if (i.name == nuser.name):
-						clients.remove(i)
-						data = str.encode(nuser.name + " has left the IRC session")
-						broadcast(data,'Server')
-						break
+		except socket.error:			#When a client disconnects let other users know and break the loop
+			for i in clients:
+				if (i.name == nuser.name):
+					clients.remove(i)
+					data = str.encode(nuser.name + " has left the IRC session")
+					broadcast(data,'Server')
+					break
+		for i in clients:
+			if (i.name == nuser.name):
+				clients.remove(i)
+				data = str.encode(nuser.name + " has left the IRC session")
+				broadcast(data,'Server')
 				break
-
 		
 #main starts the socket connection and listening thread
 if __name__ == "__main__":
 	HOST = '127.0.0.1'
 	PORT = 65432
-	
-	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-		s.bind((HOST, PORT))	#bind the host and port into the socket
+	control = 0
+	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:		
+		while (control == 0):
+			s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+			try:
+				s.bind((HOST, PORT))	#bind the host and port into the socket
+				control = 1
+			except socket.error:
+				print("\nDefault port is not available!\n")
+				PORT = int(input("Enter a port(-1 to quit):"))
+				if PORT == -1:
+					os.kill(os.getpid(), signal.SIGTERM)
 
 		l = threading.Thread(target=listener, args=(s,))	#start thread
 		l.start()
