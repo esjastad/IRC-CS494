@@ -50,36 +50,49 @@ def cull(cullee, culler):
 	except:
 		return cullee[0]
 
+		
+
 #this method checks the client message for commands begining with a / and executes the valid command		
 def analyze(data, nuser):
 	if (data[0] == '/'):							#check if the string starts with /
 		temp = data.split(' ')						#split the string at a space
 		if (temp[0] == "/create"):
 			name = cull(data,"/create ")
+			temp = name.split(',')
+			size = len(temp)
 			
-			if (name.isspace() or name == ''):		#check if the room to be created has a valid name not just spaces
-				nuser.conn.sendall(str.encode("No valid room name was given! type /help for proper use of /create"))
-			elif (name[0] == '/'):					#check if the room is being made with a / at the start
-				nuser.conn.sendall(str.encode("No valid room name was given! type /help for proper use of /create"))
+			for i in range (size):
+				if (temp[0].isspace() or temp[0] == ''):		#check if the room to be created has a valid name not just spaces
+					nuser.conn.sendall(str.encode("A room with no name is not valid. type /help for proper use of /create\n"))
+				elif (temp[0][0] == '/'):					#check if the room is being made with a / at the start
+					nuser.conn.sendall(str.encode("A room name cannot start with a '/'! type /help for proper use of /create\n"))
 				
-			else:
-				if name in rooms:					#Check if the room already exists
-					nuser.conn.sendall(str.encode("The room you are trying to create already exists!"))
-				else:								#make the room if all checks passed
-					rooms.append(name)
-					nuser.conn.sendall(str.encode(name + " room was created!"))
+				else:
+					if temp[0] in rooms:			#
+						nuser.conn.sendall(str.encode("The room " + temp[0] + " already exists!\n"))
+					else:
+						rooms.append(temp[0])
+						nuser.conn.sendall(str.encode(temp[0] + " room was created!\n"))		
+				temp = cull(name, (temp[0] + ','))
+				temp = temp.split(',')
 
 		elif (temp[0] == "/join"):
 			name = cull(data,"/join ")
-			if (name in rooms):
-				if (name in nuser.room):			#check if the user is already in the room theyre attempting to join
-					nuser.conn.sendall(str.encode("You are already in this room!"))
-				else:								#join the room if it exists
-					nuser.room.append(name)
-					roomcast((" chat) Message: " + nuser.name + " has joined the room!"),name, 'Server')
-			else:
-				nuser.conn.sendall(str.encode("The room you were trying to join was not found!"))
-						
+			temp = name.split(',')
+			size = len(temp)
+			
+			for i in range (size):
+					if temp[0] in rooms:			#
+						if (temp[0] in nuser.room):			#check if the user is already in the room theyre attempting to join
+							nuser.conn.sendall(str.encode("You are already in the room " + temp[0] + "!\n"))
+						else:								#join the room if it exists
+							nuser.room.append(temp[0])
+							roomcast((" chat) Message: " + nuser.name + " has joined the room!\n"),temp[0], 'Server')
+					else:
+						nuser.conn.sendall(str.encode("The room " + temp[0] + " you were trying to join was not found!"))			
+					temp = cull(name, (temp[0] + ','))
+					temp = temp.split(',')
+				
 		elif (temp[0] == "/roomlist"):				#list the servers rooms
 			nuser.conn.sendall(str.encode("IRC Room List:\n"))
 			for i in rooms:
@@ -87,7 +100,7 @@ def analyze(data, nuser):
 		
 		elif (temp[0] == "/userlist"):				#list the users on the server
 			name = cull(data,"/userlist ")
-			if (name.isspace() or name == ''):
+			if (name.isspace() or name == ''):		#error checking for spaces
 				nuser.conn.sendall(str.encode("IRC User List:\n"))			
 				for i in clients:
 					nuser.conn.sendall(str.encode(i.name+"\n"))
@@ -103,40 +116,52 @@ def analyze(data, nuser):
 							nuser.conn.sendall(str.encode(i.name + "\n"))
 				else:
 					nuser.conn.sendall(str.encode("The room you were trying to list users for was not found!"))
-					
-				
+									
 		elif (temp[0] == "/leave"):					#leave a specified room or all rooms
 			name = cull(data,"/leave ")
-			if (name == 'all'):
+			if (name == 'all'):						#if the user wants to leave every room
 				for i in nuser.room:
 					roomcast((" chat) Message: " + nuser.name + " has left the room!\n"),i, 'Server')
 				nuser.room = []
+			
+			temp = name.split(',')
+			size = len(temp)
+			
+			for i in range (size):					#loop through list of rooms to leave and if the client is in the room, remove the client from the room
+				if temp[0] in nuser.room:			
+					roomcast((" chat) Message: " + nuser.name + " has left the room!\n"),temp[0], 'Server')
+					nuser.room.remove(temp[0])
+				else:
+					nuser.conn.sendall(str.encode("You are not currently in the room " + temp[0] +"!\n"))
+				temp = cull(name, (temp[0] + ','))
+				temp = temp.split(',')					
 				
-			elif (name in nuser.room):
-				roomcast((" chat) Message: " + nuser.name + " has left the room!"),name, 'Server')
-				nuser.room.remove(name)
-			else:
-				nuser.conn.sendall(str.encode("You are not currently in that room, or no room was specified!"))
-
 		elif (temp[0] == "/delete"):				#delete a specified room
 			name = cull(data,"/delete ")
-			safe = 1
-			if (name == 'general'):					#cant delete the general room
-				nuser.conn.sendall(str.encode("The general room can not be deleted!"))
-			elif (name in rooms):
-				for i in clients:					#check if clients are in the room to delete
-					if (name in i.room):
-						safe = 0
-						break
+			temp = name.split(',')
+			size = len(temp)
+			
+			for i in range (size):					#loop through list of rooms to leave and if the client is in the room, remove the client from the room
+				safe = 1
+				if (temp[0] == 'general'):					#cant delete the general room
+					nuser.conn.sendall(str.encode("The general room can not be deleted!\n"))
+				elif (temp[0] in rooms):
+					for i in clients:					#check if clients are in the room to delete
+						if (temp[0] in i.room):
+							safe = 0
+							break
+
+					if (safe == 1):						#if no clients in room then delete it
+						rooms.remove(temp[0])
+						nuser.conn.sendall(str.encode(temp[0] + " room was deleted!\n"))
+					else:
+						nuser.conn.sendall(str.encode(temp[0] + " room has active users and could not be deleted!\n"))
+				else:									#room to delete not found
+					nuser.conn.sendall(str.encode(temp[0] + " room was not found!\n"))
+					
+				temp = cull(name, (temp[0] + ','))
+				temp = temp.split(',')			
 				
-				if (safe == 1):						#if no clients in room then delete it
-					rooms.remove(name)
-					nuser.conn.sendall(str.encode(name + " room was deleted!"))
-				else:
-					nuser.conn.sendall(str.encode(name + " room has active users and could not be deleted!"))
-			else:									#room to delete not found
-				nuser.conn.sendall(str.encode(name + " room was not found!"))
-	
 		elif (temp[0] == "/broadcast"):				#broadcast message to all users
 			data = cull(data,"/broadcast ")
 			data = "(Broadcast chat) " + nuser.name + ": " + data

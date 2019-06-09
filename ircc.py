@@ -28,15 +28,15 @@ def help():
 	for i in commands:
 		print(i)
 	
-	print("\n/create,/join,/leave and /delete expect a valid room. /leave all will leave all rooms")
 	print("\n/whisper expects a valid user followed by a message, /broadcast just expects a message.")
-	print("\n/rooms expects a valid room (or list of rooms seperated by a comma only NO SPACE) followed by a message.")
-	print("\n/roomlist,/userlist,and /myrooms can be used alone.")
+	print("\n/rooms, expects a valid room (or list of rooms seperated by a comma only NO SPACE) followed by a message.")
+	print("\n/create, /leave, /join and /delete expect a valid room (or list of rooms seperated by a comma only NO SPACE)")
+	print("\n/roomlist, /userlist,and /myrooms can be used alone.")
 	print("\n/userlist followed by a room name will list the users in that room")
 	print("\nType quit to disconnect from IRC session.\n")
 	
 	print("\n\nExample: /create funroom")
-	print("Example: /join funroom")
+	print("Example: /join funroom,general")
 	print("Example: /whisper dave Hello")
 	print("Example: /rooms general,funroom Hello Everyone!")
 	print("Example: /userlist")
