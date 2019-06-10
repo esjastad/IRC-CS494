@@ -6,7 +6,7 @@ import threading
 import os
 import signal
 
-
+commands = ['/help','/create','/join','/leave','/roomlist','/userlist','/delete','/whisper','/broadcast','/rooms','/myrooms']	#list of client commands
 #listening method ran in a thread, receives data from host
 def listen(s):
 	while True:
@@ -50,7 +50,7 @@ if __name__ == "__main__":
 	PORT = 65432        # The port used by the server
 	control = 0
 	sdata = 0			#initialize variable for sending data
-	commands = ['/help','/create','/join','/leave','/roomlist','/userlist','/delete','/whisper','/broadcast','/rooms','/myrooms']	#list of client commands
+
 
 	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 		while (control == 0):

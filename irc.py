@@ -170,19 +170,30 @@ def analyze(data, nuser):
 		elif (temp[0] == "/whisper"):				#whisper to a specified user
 			data = cull(data,"/whisper ")
 			temp = data.split(' ')
-			friend = None
-			for i in clients:						#find the client to whisper
-				if (i.name == temp[0]):
-					friend = i
-					break
 			
-			if (friend != None):					#whisper the client if found
-				data = cull(data, (temp[0] + ' '))
-				data = "(Whisper) " + nuser.name + ": " + data
-				whisper(str.encode(data),friend)
+			if (len(temp) < 2):						#check for room/rooms followed by a message
+				nuser.conn.sendall(str.encode("No user or message properly specified. use /help for proper use of /rooms!"))
 			else:
-				nuser.conn.sendall(str.encode(temp[0] + " was not found!"))
-
+				msg = temp[1]			
+				chan = temp[0].split(',')			#split the list of rooms seperated by comma
+				size = len(chan)					#how many rooms to do
+			
+				for i in range (size):			
+					friend = None
+					for i in clients:						#find the client to whisper
+						if (i.name == chan[0]):
+							friend = i
+							break
+			
+					if (friend != None):					#whisper the client if found
+						data = "(Whisper) " + nuser.name + ": " + msg
+						whisper(str.encode(data),friend)
+					else:
+						nuser.conn.sendall(str.encode(chan[0] + " was not found!"))
+					data = cull(temp[0], (chan[0] + ','))
+					temp = data.split(' ')
+					chan = temp[0].split(',')
+					
 		elif (temp[0] == "/rooms"):					#message a room or list of rooms
 			data = cull(data,"/rooms ")
 			temp = data.split(' ')
